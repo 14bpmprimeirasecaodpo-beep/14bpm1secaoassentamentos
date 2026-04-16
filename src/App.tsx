@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Settings, Users, UserMinus, UserPlus, ShieldAlert, Plus, Search, FileUp, Download, Trash2, Edit2, Bell, LogOut, UserCog, Gavel } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -191,6 +192,53 @@ export default function App() {
     setIsFormOpen(true);
   };
 
+  const exportCurrentViewToCSV = () => {
+    let exportData: any[] = [];
+    let fileName = '';
+
+    switch (view) {
+      case 'efetivo':
+        exportData = data.efetivoAtual;
+        fileName = 'Efetivo_Atual';
+        break;
+      case 'reformados':
+        exportData = data.reformadosTransferidos;
+        fileName = 'Reformados_Transferidos';
+        break;
+      case 'recebidos':
+        exportData = data.recebidos;
+        fileName = 'Recebidos';
+        break;
+      case 'punicoes':
+        exportData = data.punicoes;
+        fileName = 'Punicoes';
+        break;
+    }
+
+    if (exportData.length === 0) {
+      toast.error('Não há dados para exportar nesta visualização.');
+      return;
+    }
+
+    // Convert data to sheet
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    // Convert sheet to CSV
+    const csv = XLSX.utils.sheet_to_csv(ws);
+    
+    // Create blob and download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${fileName}_${new Date().toLocaleDateString()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success(`Exportado ${exportData.length} registros para CSV.`);
+  };
+
   const filteredData = () => {
     const key = view === 'efetivo' ? 'efetivoAtual' : 
                 view === 'reformados' ? 'reformadosTransferidos' : 
@@ -252,8 +300,8 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 overflow-hidden flex flex-col pb-16">
         {/* Search Area */}
-        <div className="p-4 flex-shrink-0">
-          <div className="relative">
+        <div className="p-4 flex-shrink-0 flex gap-2">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
             <Input 
               placeholder="Pesquisar militar..." 
@@ -262,6 +310,15 @@ export default function App() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-10 w-10 border-border-subtle bg-white text-primary-brand shrink-0"
+            onClick={exportCurrentViewToCSV}
+            title="Exportar visualização atual para CSV"
+          >
+            <Download className="w-5 h-5" />
+          </Button>
         </div>
 
         {/* List Content */}
